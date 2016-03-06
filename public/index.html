@@ -1,0 +1,107 @@
+<html>
+    <head>
+        <title> INDG Game</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <!-- Latest compiled and minified CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+        <!-- Optional theme -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
+
+        <!-- my own css-->
+        <link rel="stylesheet" href="/css/style.css" rel="stylesheet">
+
+        <!-- Latest compiled and minified JavaScript -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" type="text/javascript"></script>
+
+        <template id="gameBoardItem">
+               <div class="game-board-item"></div>
+        </template>
+
+        <template id="gameBoard">
+            <div class="row game-board">
+                <!-- Halt overlay-->
+                <div class="halt-overlay"></div>
+
+                <!--Game items-->
+                <div class="game-board-items"></div>
+
+                <!--Game controls-->
+                <div class="row">
+                    <div class="col-md-12 board-controls">
+                        <div class="btn-group btn-group-justified" role="group" aria-label="Controls">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-default" data-take="1">Take 1</button>
+                            </div>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-default" data-take="2">Take 2</button>
+                            </div>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-default" data-take="3">Take 3</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row board-status-holder">
+                    <div class="col-md-2"></div>
+                    <div class="col-md-8 board-status">
+                        <form class="form-horizontal">
+                            <div class="form-group">
+                                <label>Status box:</label>
+                                <textarea class="form-control" id="statusBox" disabled rows="10"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="col-md-2"></div>
+                </div>
+
+            </div>
+        </template>
+
+
+
+        <!-- My app -->
+        <script src="app/engine.js" type="text/javascript"></script>
+
+    </head>
+    <body>
+
+        <!--Game board -->
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-2"></div>
+                <div class="col-md-8 board-holder">
+
+                </div>
+                <div class="col-md-2"></div>
+            </div>
+        </div>
+
+
+        <!-- State game mode modal -->
+        <div class="modal fade" id="game-mode-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+
+                    <div class="modal-header">
+                        <h4 class="modal-title" id="myModalLabel">What will it be ?</h4>
+                    </div>
+
+                    <div class="modal-body">
+                        Go against me or just a friend of yours?
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" data-dismiss="modal" onclick="Game.setMode('single')">Let's play</button>
+                        <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="Game.setMode('double')">I'm playing with a friend</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </body>
+</html>
