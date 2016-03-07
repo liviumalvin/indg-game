@@ -4,7 +4,187 @@ window.Game = {};
     "use strict";
 
     var cloneTemplate,
-        Game;
+        Game,
+        ComputerPlayer;
+
+
+    /**
+     * ComputerPlayer
+     * @param level
+     * @constructor
+     */
+    ComputerPlayer = function (level) {
+
+        this.rules = {
+            faultPercentage: 100,
+            aggresiveThinking: 0,
+            avoid: [8, 7, 5, 6, 4, 3, 2],
+            reachFor: [4, 3, 2],
+            doNotAllow: [4,3,2],
+            avoidPercentage: 0,
+            multiplyFactor: 1.5,
+            goodWill: 90,
+            possibleMoves: [1,2,3]
+        };
+
+        this.aggresivity= {
+            0: {
+                takeMinimum: 1,
+                takeMaximum: 2,
+                boostAt: 0
+            },
+            1: {
+                takeMaximum: 2,
+                takeMinimum: 1,
+                boostAt: 15
+            },
+            2: {
+                takeMinimum: 2,
+                takeMaximum: 3,
+                boostAt: 19
+            }
+        };
+
+        this.setLevel(level);
+    };
+
+    /**
+     * Set computer player level of rules
+     * @param level
+     * @returns {boolean}
+     */
+    ComputerPlayer.prototype.setLevel = function (level) {
+
+        this.level = JSON.parse(JSON.stringify(this.rules));
+
+        if (level === 0) {
+            return true;
+        }
+
+        this.level.goodWill             = Math.floor(this.level.goodWill / level);
+        this.level.multiplyFactor       = this.level.multiplyFactor / level;
+
+        //Compute fault percentage
+        this.level.faultPercentage      = Math.floor(
+                                            this.level.faultPercentage / (
+                                                (this.level.multiplyFactor * level) * (1/(this.level.goodWill/100))
+                                            )
+                                        );
+
+        //Compute aggresive thinking
+        this.level.aggresiveThinking    = Math.round(
+                                            (
+                                                Math.floor(
+                                                    this.level.aggresiveThinking + level
+                                                ) - (
+                                                Math.floor(
+                                                    this.level.aggresiveThinking + level
+                                                ) * this.level.goodWill/100)
+                                            ) * this.level.multiplyFactor
+                                            );
+
+        console.log("Computer rules", this.level);
+        console.table(this.level);
+    };
+
+    /**
+     * Computer thinking.
+     * @param game
+     * @returns {*}
+     */
+    ComputerPlayer.prototype.think = function (game) {
+        var remaining,
+            willTake,
+            i_will_take;
+
+        remaining = game.rules.itemsCount - game.status.out;
+
+        willTake = this.beAggresive();
+        if (remaining < this.aggresivity[this.level.aggresiveThinking].boostAt) {
+            willTake = this.aggresivity[this.level.aggresiveThinking].takeMaximum;
+        }
+
+        //Fault?
+        if (this.level.faultPercentage > 60) {
+            return willTake;
+        }
+
+        //Is already in reach
+        if (-1 !== this.level.reachFor.indexOf(remaining)) {
+            if (this.level.faultPercentage > 30) {
+                willTake = remaining - 1 + Math.round(Math.random());
+            } else {
+                willTake = remaining - 1;
+            }
+        }
+
+        if (-1 !== this.level.avoid.indexOf(remaining - willTake)) {
+            var oldWillTake;
+
+            oldWillTake = willTake;
+
+            //Is within reach
+            for (i_will_take = willTake - 1; i_will_take > 0; i_will_take -= 1) {
+                console.log(i_will_take);
+                if (this.level.faultPercentage > 30) {
+                    return willTake;
+                }
+
+                if (-1 === this.level.avoid.indexOf(remaining - i_will_take)) {
+                    willTake = i_will_take;
+                }
+            }
+
+            if (oldWillTake === willTake) {
+                //Go for the minimum
+                willTake = 1;
+            }
+        }
+
+        if (1 >= this.level.aggresiveThinking) {
+
+            //Force the opponent to loose
+            this.level.avoid.forEach(function (value) {
+                if ((remaining - value) <= 3) {
+                    willTake = remaining - value;
+                }
+            });
+
+            if ( -1 !== this.level.doNotAllow.indexOf(remaining - willTake) ) {
+                while(willTake > 0) {
+                    if (-1 === this.level.doNotAllow.indexOf(remaining - willTake)) {
+                        return willTake;
+                    }
+                    willTake --;
+                }
+                willTake = 1;
+            }
+        }
+
+        return willTake;
+    };
+
+    /**
+     * Get computer aggresiveness
+     * @returns {*}
+     */
+    ComputerPlayer.prototype.beAggresive = function () {
+        var luck,
+            value;
+
+        luck = Math.round(Math.random());
+
+        if (luck) {
+            value = this.aggresivity[this.level.aggresiveThinking].takeMinimum;
+        } else {
+            value = this.aggresivity[this.level.aggresiveThinking].takeMaximum;
+        }
+
+        return value;
+
+    };
+
+    window.C = ComputerPlayer;
 
     /**
      * cloneTemplate
@@ -16,7 +196,7 @@ window.Game = {};
         return $($.parseHTML(template.html())[1]);
     };
 
-
+    //Game object
     Game = {
 
         //Predefined members
@@ -47,9 +227,9 @@ window.Game = {};
          * Players
          */
         players: {
-            1: "You",
-            2: "Your friend's",
-            3: "Computer"
+            1: "You (Player 1)",
+            2: "Your friend's (Player 2)",
+            3: "Computer (A.I) "
         },
 
         /**
@@ -173,6 +353,25 @@ window.Game = {};
         },
 
         /**
+         * Make the player move.
+         * @param round
+         * @param willTake
+         * @returns {boolean}
+         */
+        makePlayerMove: function (round, willTake) {
+
+            if (round.game.status.finished) {
+                round.game.addStatusMessage("Game over champ, reload for another round.");
+                return false;
+            }
+
+            round.game.takeOut(willTake);
+            round.game.addStatusMessage(round.getPlayerName().replace("'s", "", 'g') + " took out " + willTake + " items");
+            round.game.addStatusMessage("----");
+            round.choose();
+        },
+
+        /**
          * Disable items
          */
         disableItems: function () {
@@ -226,31 +425,34 @@ window.Game = {};
         this.game.addStatusMessage("Starting a new game");
         this.game.unhaltBoard();
 
+        this.computer = new ComputerPlayer(100); //Level 1 computer
+
         round = this;
 
         this.game.$board.find("[data-take]").each(function () {
             $(this).click(function () {
-
-                if (round.game.status.finished) {
-                    round.game.addStatusMessage("Game over champ, reload for another round.");
-                    return false;
-                }
-
-                round.game.takeOut($(this).data("take"));
-                round.game.addStatusMessage(round.getPlayerName().replace("'s", "", 'g') + " took out " + $(this).data('take') + " items");
-                round.game.addStatusMessage("----");
-                round.choose();
+                round.game.makePlayerMove(round, $(this).data('take'));
             });
         });
 
         this.choose();
     };
 
+    /**
+     * Retrieve player caller
+     * @returns {*}
+     */
     Game.round.prototype.getPlayerName = function() {
         return this.game.players[this.currentPlayer];
     };
 
+    /**
+     * Decision maker
+     * @returns {boolean}
+     */
     Game.round.prototype.choose = function () {
+
+        //Switch player
         this.switchPlayer();
 
         if (this.game.status.out >= this.game.rules.itemsCount) {
@@ -261,14 +463,26 @@ window.Game = {};
         }
 
         this.game.addStatusMessage(this.getPlayerName() + " move");
+
+        if (3 === this.currentPlayer) {
+            this.game.makePlayerMove(this, this.computer.think(this.game));
+        }
     };
 
+    /**
+     * Switch player
+     */
     Game.round.prototype.switchPlayer = function () {
         this.currentPlayer = this.game.playerSwitch[this.game.status.type][this.currentPlayer];
     };
 
-
+    /**
+     * Public by facade.
+     * @param type
+     * @returns {boolean}
+     */
     facade.setMode = function (type) {
+
         if (Game.status.started) {
             return false;
         }
